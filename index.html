@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>オリンピック・タイムアタック射撃</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 背景画像はCSSで設定 -->
+        <div id="ui-layer">
+            <div id="time-display">Time: <span id="time">60</span></div>
+            <div id="score-display">Score: <span id="score">0</span></div>
+            <div id="ammo-display">Ammo: <span id="ammo">2</span>/2</div>
+            <div id="instruction-display">【ルール】左クリック: 射撃 / 右クリック: リロード<br><span style="color:red;">赤クレーは減点</span> / 金クレーは高ボーナス</div>
+        </div>
+        <div id="crosshair"></div>
+        <div id="start-screen">
+            <h1>クレー射撃 タイムアタック</h1>
+            <p>60秒間で的を撃ち落とせ！</p>
+            <button id="start-btn">スタート</button>
+        </div>
+        <div id="game-over-screen" class="hidden">
+            <h1>TIME UP</h1>
+            <p>Score: <span id="final-score">0</span></p>
+            <button id="restart-btn">もう一度プレイ</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
