@@ -23,7 +23,6 @@ let isPlaying = false;
 let gameInterval;
 let activeClays = [];
 
-// Web Audio API によるシンセ音（外部通信不要で確実に大音量・明瞭に鳴るバックアップ＆ブースト）
 let audioCtx = null;
 function getAudioContext() {
     if (!audioCtx) {
@@ -35,11 +34,9 @@ function getAudioContext() {
     return audioCtx;
 }
 
-// 乾いた重厚ショットガン発砲音
+// 散弾銃発砲音・リロード音・破砕音
 const shootSound = new Audio('https://assets.mixkit.co/active_storage/sfx/214/214-preview.mp3');
-// 明瞭な金属装填・排莢音（大音量で確実に響く高音質クリックスタイルのリロード音）
 const reloadSound = new Audio('https://assets.mixkit.co/active_storage/sfx/1673/1673-preview.mp3');
-// 陶器・クレー破砕音
 const breakSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2497/2497-preview.mp3');
 
 shootSound.volume = 1.0;
@@ -102,12 +99,10 @@ function shoot(e) {
     ammo--;
     updateUI();
 
-    // 銃声再生
     const sound = shootSound.cloneNode();
     sound.volume = 1.0;
     sound.play().catch(() => {});
 
-    // マズルフラッシュ＆画面揺れ
     flashOverlay.style.opacity = '1';
     setTimeout(() => flashOverlay.style.opacity = '0', 50);
     shakeScreen();
@@ -149,7 +144,6 @@ function reload() {
     isReloading = true;
     ammoEl.innerText = "装填中...";
 
-    // 高音質MP3再生 + 明瞭な金属ラッチ効果音を同時出力
     const sound = reloadSound.cloneNode();
     sound.volume = 1.0;
     sound.play().catch(() => {});
@@ -232,7 +226,7 @@ function spawnClay() {
     container.appendChild(el);
 
     const startX = window.innerWidth * (0.42 + Math.random() * 0.16);
-    const startY = window.innerHeight * 0.82; // バンカー開口部付近から射出
+    const startY = window.innerHeight * 0.85;
     const targetX = (Math.random() - 0.5) * window.innerWidth * 1.3 + window.innerWidth * 0.5;
     const targetY = window.innerHeight * (0.12 + Math.random() * 0.22);
 
