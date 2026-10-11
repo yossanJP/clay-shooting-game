@@ -1,5 +1,6 @@
 const container = document.getElementById('game-container');
 const crosshair = document.getElementById('crosshair');
+const fpsGun = document.getElementById('fps-gun');
 const flashOverlay = document.getElementById('flash-overlay');
 const timeEl = document.getElementById('time');
 const scoreEl = document.getElementById('score');
@@ -80,6 +81,14 @@ function playSynthReload() {
 document.addEventListener('mousemove', (e) => {
     crosshair.style.left = e.clientX + 'px';
     crosshair.style.top = e.clientY + 'px';
+    
+    // マウスの動きに銃が少し追従するパララックス効果
+    if (!isReloading) {
+        const centerX = window.innerWidth / 2;
+        const offsetX = (e.clientX - centerX) * 0.08;
+        fpsGun.style.setProperty('--ox', `${offsetX}px`);
+        fpsGun.style.transform = `translate(calc(-50% + ${offsetX}px), 0)`;
+    }
 });
 
 document.addEventListener('contextmenu', e => e.preventDefault());
@@ -102,6 +111,10 @@ function shoot(e) {
     const sound = shootSound.cloneNode();
     sound.volume = 1.0;
     sound.play().catch(() => {});
+
+    // 発砲の反動アニメーション
+    fpsGun.classList.add('gun-shoot');
+    setTimeout(() => fpsGun.classList.remove('gun-shoot'), 120);
 
     flashOverlay.style.opacity = '1';
     setTimeout(() => flashOverlay.style.opacity = '0', 50);
@@ -149,9 +162,13 @@ function reload() {
     sound.play().catch(() => {});
     playSynthReload();
 
+    // リロードで銃を画面外に下げるアニメーション
+    fpsGun.classList.add('gun-reload');
+
     setTimeout(() => {
         ammo = 2;
         isReloading = false;
+        fpsGun.classList.remove('gun-reload');
         updateUI();
     }, 750);
 }
