@@ -3,67 +3,88 @@ body {
     padding: 0;
     overflow: hidden;
     background-color: #000;
-    font-family: sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     user-select: none;
 }
 #game-container {
     width: 100vw;
     height: 100vh;
     position: relative;
-    /* ダミーの背景画像を設定しています */
-    background: url('https://images.unsplash.com/photo-1582490518711-d0b4dc0b06ab?q=80&w=1920&auto=format&fit=crop') no-repeat center center/cover;
-    cursor: none; 
+    background: radial-gradient(circle at center, #87CEEB 0%, #4682B4 70%, #2F4F4F 100%);
+    cursor: none;
+    overflow: hidden;
+}
+#flash-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background-color: rgba(255, 255, 200, 0.6);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.05s ease-out;
+    z-index: 50;
 }
 #ui-layer {
     position: absolute;
-    top: 0; left: 0; width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
+    top: 15px; left: 20px;
     display: flex;
-    justify-content: space-between;
+    gap: 30px;
     pointer-events: none;
-    color: white;
-    text-shadow: 2px 2px 4px #000;
-    font-size: 24px;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    font-size: 22px;
     font-weight: bold;
+    z-index: 100;
 }
 #instruction-display {
-    font-size: 18px;
-    text-align: right;
-}
-#crosshair {
     position: absolute;
-    width: 40px; height: 40px;
-    border: 2px solid #0f0;
-    border-radius: 50%;
-    transform: translate(-50%, -50%);
+    top: 15px; right: 20px;
+    color: #eee;
+    font-size: 15px;
+    text-align: right;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
     pointer-events: none;
     z-index: 100;
 }
-#crosshair::after {
+#crosshair {
+    position: absolute;
+    width: 32px; height: 32px;
+    border: 2px solid #00ff66;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    z-index: 150;
+}
+#crosshair::before, #crosshair::after {
     content: '';
     position: absolute;
-    top: 50%; left: 50%;
-    width: 4px; height: 4px;
-    background: #f00;
-    transform: translate(-50%, -50%);
-    border-radius: 50%;
+    background: #00ff66;
 }
+#crosshair::before { top: 50%; left: -6px; right: -6px; height: 2px; transform: translateY(-50%); }
+#crosshair::after { left: 50%; top: -6px; bottom: -6px; width: 2px; transform: translateX(-50%); }
+
 .clay {
     position: absolute;
-    width: 60px; height: 20px;
+    width: 50px; height: 16px;
     border-radius: 50%;
-    background-color: #ff6600; 
-    box-shadow: inset -5px -5px 10px rgba(0,0,0,0.5);
-    cursor: none;
+    background: radial-gradient(ellipse at center, #ff4500 0%, #b22222 100%);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+    transform: translate(-50%, -50%);
+    pointer-events: none;
 }
-.clay.red { background-color: #ff0000; }
-.clay.gold { background-color: #ffd700; box-shadow: 0 0 10px #ffd700; }
+
+.particle {
+    position: absolute;
+    width: 6px; height: 6px;
+    background: #ff4500;
+    border-radius: 2px;
+    pointer-events: none;
+    z-index: 40;
+}
 
 #start-screen, #game-over-screen {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.7);
+    background: rgba(0,0,0,0.75);
     color: white;
     display: flex;
     flex-direction: column;
@@ -73,12 +94,15 @@ body {
 }
 .hidden { display: none !important; }
 button {
-    padding: 15px 30px;
+    margin-top: 20px;
+    padding: 12px 28px;
     font-size: 20px;
+    font-weight: bold;
     cursor: pointer;
-    background: #007bff;
+    background: #ff4500;
     color: white;
     border: none;
-    border-radius: 5px;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
 }
-button:hover { background: #0056b3; }
+button:hover { background: #d03700; }

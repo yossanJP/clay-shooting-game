@@ -2,27 +2,32 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>オリンピック・タイムアタック射撃</title>
+    <title>リアル・クレー射撃 タイムアタック</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-container">
-        <!-- 背景画像はCSSで設定 -->
+        <div id="flash-overlay"></div>
         <div id="ui-layer">
-            <div id="time-display">Time: <span id="time">60</span></div>
-            <div id="score-display">Score: <span id="score">0</span></div>
-            <div id="ammo-display">Ammo: <span id="ammo">2</span>/2</div>
-            <div id="instruction-display">【ルール】左クリック: 射撃 / 右クリック: リロード<br><span style="color:red;">赤クレーは減点</span> / 金クレーは高ボーナス</div>
+            <div class="ui-box">TIME: <span id="time">60</span></div>
+            <div class="ui-box">SCORE: <span id="score">0</span></div>
+            <div class="ui-box">COMBO: <span id="combo">0</span> (x<span id="multiplier">1.0</span>)</div>
+            <div class="ui-box">AMMO: <span id="ammo">2</span>/2</div>
+        </div>
+        <div id="instruction-display">
+            【操作】左クリック: 射撃 / 右クリック: リロード<br>
+            ※初弾撃破・素早い射撃・コンボ継続でスコア大幅アップ
         </div>
         <div id="crosshair"></div>
         <div id="start-screen">
-            <h1>クレー射撃 タイムアタック</h1>
-            <p>60秒間で的を撃ち落とせ！</p>
-            <button id="start-btn">スタート</button>
+            <h1>トラップ射撃 タイムアタック</h1>
+            <p>1分間で標的を撃ち落とせ！<br>連続命中で速度アップ＆高得点！</p>
+            <button id="start-btn">競技開始</button>
         </div>
         <div id="game-over-screen" class="hidden">
             <h1>TIME UP</h1>
-            <p>Score: <span id="final-score">0</span></p>
+            <p>FINAL SCORE: <span id="final-score">0</span></p>
+            <p>MAX COMBO: <span id="max-combo">0</span></p>
             <button id="restart-btn">もう一度プレイ</button>
         </div>
     </div>
