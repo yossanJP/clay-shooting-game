@@ -12,7 +12,8 @@ body {
     position: relative;
     cursor: none;
     overflow: hidden;
-    background: url('https://images.unsplash.com/photo-1500382017468-9049fed747ef?q=80&w=2000&auto=format&fit=crop') no-repeat center bottom / cover;
+    /* 本物の競技場に近い緑地スタジアムの写真を設定 */
+    background: url('https://images.unsplash.com/photo-1540747913346-19e32dc3e97e?q=80&w=2000&auto=format&fit=crop') no-repeat center center / cover;
 }
 #flash-overlay {
     position: absolute;
@@ -75,49 +76,45 @@ body {
 #crosshair::before { top: 50%; left: -8px; right: -8px; height: 2px; transform: translateY(-50%); }
 #crosshair::after { left: 50%; top: -8px; bottom: -8px; width: 2px; transform: translateX(-50%); }
 
-/* FPS視点の銃グラフィック */
+/* 修正版：少しでもリアルに見えるように改良したFPS銃（テクスチャ感を追加） */
 #fps-gun {
     position: absolute;
-    bottom: -50px;
+    bottom: -80px;
     left: 50%;
     transform: translateX(-50%);
-    width: 140px;
-    height: 450px;
+    width: 180px;
+    height: 600px;
     z-index: 120;
     pointer-events: none;
     transition: transform 0.05s ease-out;
 }
-.barrel {
+.barrel-left, .barrel-right {
     position: absolute;
     top: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 60px;
-    height: 350px;
-    background: linear-gradient(90deg, #1a1a1a 0%, #4a4a4a 30%, #2a2a2a 50%, #4a4a4a 70%, #1a1a1a 100%);
-    border-radius: 4px 4px 0 0;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.8), 0 10px 20px rgba(0,0,0,0.5);
+    width: 40px;
+    height: 480px;
+    background: linear-gradient(90deg, #111 0%, #333 30%, #444 50%, #222 70%, #111 100%);
+    border-radius: 50% 50% 0 0 / 10px 10px 0 0;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.9), 0 15px 30px rgba(0,0,0,0.8);
 }
-/* 銃身の中央ライン（上下二連） */
-.barrel::after {
-    content: '';
-    position: absolute;
-    top: 0; left: 50%;
-    width: 4px; height: 100%;
-    background: linear-gradient(to right, #0a0a0a, #1a1a1a);
-    transform: translateX(-50%);
-    box-shadow: inset 0 0 2px #000;
+.barrel-left {
+    left: 48px;
+    border-right: 1px solid #0a0a0a;
+}
+.barrel-right {
+    left: 92px;
+    border-left: 1px solid #0a0a0a;
 }
 .sight {
     position: absolute;
-    top: -4px;
+    top: -5px;
     left: 50%;
     transform: translateX(-50%);
-    width: 6px;
-    height: 8px;
-    background: #ffb700;
+    width: 8px;
+    height: 12px;
+    background: radial-gradient(circle, #ffcc00 0%, #cc9900 100%);
     border-radius: 50%;
-    box-shadow: 0 0 4px #ffb700;
+    box-shadow: 0 0 6px #ffcc00;
     z-index: 10;
 }
 .stock {
@@ -125,19 +122,19 @@ body {
     bottom: 0;
     left: 50%;
     transform: translateX(-50%);
-    width: 140px;
-    height: 150px;
-    background: linear-gradient(90deg, #3d2314 0%, #683a1d 30%, #522d16 50%, #683a1d 70%, #3d2314 100%);
-    border-radius: 20px 20px 0 0;
-    box-shadow: inset 0 5px 15px rgba(0,0,0,0.8);
+    width: 180px;
+    height: 200px;
+    background: url('https://images.unsplash.com/photo-1596738144825-782255bc9cb8?q=80&w=200&auto=format&fit=crop') center/cover;
+    border-radius: 30px 30px 0 0;
+    box-shadow: inset 0 10px 30px rgba(0,0,0,0.9);
 }
 
 .gun-shoot {
-    transform: translate(calc(-50% + var(--ox, 0px)), 80px) rotateX(10deg) !important;
+    transform: translate(calc(-50% + var(--ox, 0px)), 120px) rotateX(12deg) !important;
 }
 .gun-reload {
-    transform: translate(calc(-50% + var(--ox, 0px)), 350px) rotateX(25deg) !important;
-    transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) !important;
+    transform: translate(calc(-50% + var(--ox, 0px)), 450px) rotateX(35deg) !important;
+    transition: transform 0.4s cubic-bezier(0.3, 0.5, 0.4, 0.95) !important;
 }
 
 .clay {

@@ -35,9 +35,10 @@ function getAudioContext() {
     return audioCtx;
 }
 
-// 散弾銃発砲音・リロード音・破砕音
+// 効果音
 const shootSound = new Audio('https://assets.mixkit.co/active_storage/sfx/214/214-preview.mp3');
-const reloadSound = new Audio('https://assets.mixkit.co/active_storage/sfx/1673/1673-preview.mp3');
+// リロード音をボルトアクションのようなガッチャンという重厚音に変更
+const reloadSound = new Audio('https://assets.mixkit.co/active_storage/sfx/1672/1672-preview.mp3');
 const breakSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2497/2497-preview.mp3');
 
 shootSound.volume = 1.0;
@@ -49,32 +50,31 @@ function playSynthReload() {
         const ctx = getAudioContext();
         const now = ctx.currentTime;
         
-        // 排莢金属音「チャキン！」
+        // より重く低いボルトアクション風の「ガチャン」音に修正
         const osc1 = ctx.createOscillator();
         const gain1 = ctx.createGain();
-        osc1.type = 'triangle';
-        osc1.frequency.setValueAtTime(2200, now);
-        osc1.frequency.exponentialRampToValueAtTime(700, now + 0.12);
-        gain1.gain.setValueAtTime(0.7, now);
-        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc1.type = 'square';
+        osc1.frequency.setValueAtTime(300, now);
+        osc1.frequency.exponentialRampToValueAtTime(80, now + 0.15);
+        gain1.gain.setValueAtTime(1.0, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
         osc1.connect(gain1);
         gain1.connect(ctx.destination);
         osc1.start(now);
-        osc1.stop(now + 0.12);
+        osc1.stop(now + 0.15);
 
-        // 薬室閉鎖・装填ロック音「ガシャッ！」
-        const t2 = now + 0.28;
+        const t2 = now + 0.3;
         const osc2 = ctx.createOscillator();
         const gain2 = ctx.createGain();
-        osc2.type = 'square';
-        osc2.frequency.setValueAtTime(850, t2);
-        osc2.frequency.exponentialRampToValueAtTime(260, t2 + 0.18);
-        gain2.gain.setValueAtTime(0.8, t2);
-        gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.18);
+        osc2.type = 'sawtooth';
+        osc2.frequency.setValueAtTime(400, t2);
+        osc2.frequency.exponentialRampToValueAtTime(100, t2 + 0.2);
+        gain2.gain.setValueAtTime(1.0, t2);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.2);
         osc2.connect(gain2);
         gain2.connect(ctx.destination);
         osc2.start(t2);
-        osc2.stop(t2 + 0.18);
+        osc2.stop(t2 + 0.2);
     } catch(e) {}
 }
 
@@ -82,7 +82,6 @@ document.addEventListener('mousemove', (e) => {
     crosshair.style.left = e.clientX + 'px';
     crosshair.style.top = e.clientY + 'px';
     
-    // マウスの動きに銃が少し追従するパララックス効果
     if (!isReloading) {
         const centerX = window.innerWidth / 2;
         const offsetX = (e.clientX - centerX) * 0.08;
@@ -112,7 +111,6 @@ function shoot(e) {
     sound.volume = 1.0;
     sound.play().catch(() => {});
 
-    // 発砲の反動アニメーション
     fpsGun.classList.add('gun-shoot');
     setTimeout(() => fpsGun.classList.remove('gun-shoot'), 120);
 
@@ -162,7 +160,6 @@ function reload() {
     sound.play().catch(() => {});
     playSynthReload();
 
-    // リロードで銃を画面外に下げるアニメーション
     fpsGun.classList.add('gun-reload');
 
     setTimeout(() => {
