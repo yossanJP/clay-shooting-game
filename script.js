@@ -23,10 +23,62 @@ let isPlaying = false;
 let gameInterval;
 let activeClays = [];
 
-// フリー音源（ショットガン射撃・リロード・破砕音）
+// Web Audio API によるシンセ音（外部通信不要で確実に大音量・明瞭に鳴るバックアップ＆ブースト）
+let audioCtx = null;
+function getAudioContext() {
+    if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+    }
+    return audioCtx;
+}
+
+// 乾いた重厚ショットガン発砲音
 const shootSound = new Audio('https://assets.mixkit.co/active_storage/sfx/214/214-preview.mp3');
-const reloadSound = new Audio('https://assets.mixkit.co/active_storage/sfx/1672/1672-preview.mp3');
+// 明瞭な金属装填・排莢音（大音量で確実に響く高音質クリックスタイルのリロード音）
+const reloadSound = new Audio('https://assets.mixkit.co/active_storage/sfx/1673/1673-preview.mp3');
+// 陶器・クレー破砕音
 const breakSound = new Audio('https://assets.mixkit.co/active_storage/sfx/2497/2497-preview.mp3');
+
+shootSound.volume = 1.0;
+reloadSound.volume = 1.0;
+breakSound.volume = 0.9;
+
+function playSynthReload() {
+    try {
+        const ctx = getAudioContext();
+        const now = ctx.currentTime;
+        
+        // 排莢金属音「チャキン！」
+        const osc1 = ctx.createOscillator();
+        const gain1 = ctx.createGain();
+        osc1.type = 'triangle';
+        osc1.frequency.setValueAtTime(2200, now);
+        osc1.frequency.exponentialRampToValueAtTime(700, now + 0.12);
+        gain1.gain.setValueAtTime(0.7, now);
+        gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        osc1.connect(gain1);
+        gain1.connect(ctx.destination);
+        osc1.start(now);
+        osc1.stop(now + 0.12);
+
+        // 薬室閉鎖・装填ロック音「ガシャッ！」
+        const t2 = now + 0.28;
+        const osc2 = ctx.createOscillator();
+        const gain2 = ctx.createGain();
+        osc2.type = 'square';
+        osc2.frequency.setValueAtTime(850, t2);
+        osc2.frequency.exponentialRampToValueAtTime(260, t2 + 0.18);
+        gain2.gain.setValueAtTime(0.8, t2);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.18);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+        osc2.start(t2);
+        osc2.stop(t2 + 0.18);
+    } catch(e) {}
+}
 
 document.addEventListener('mousemove', (e) => {
     crosshair.style.left = e.clientX + 'px';
@@ -37,6 +89,7 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 
 document.addEventListener('mousedown', (e) => {
     if (!isPlaying) return;
+    getAudioContext();
     if (e.button === 0) {
         shoot(e);
     } else if (e.button === 2) {
@@ -51,12 +104,12 @@ function shoot(e) {
 
     // 銃声再生
     const sound = shootSound.cloneNode();
-    sound.volume = 0.8;
+    sound.volume = 1.0;
     sound.play().catch(() => {});
 
     // マズルフラッシュ＆画面揺れ
     flashOverlay.style.opacity = '1';
-    setTimeout(() => flashOverlay.style.opacity = '0', 60);
+    setTimeout(() => flashOverlay.style.opacity = '0', 50);
     shakeScreen();
 
     let hit = false;
@@ -65,12 +118,11 @@ function shoot(e) {
         const rect = item.el.getBoundingClientRect();
         const dist = Math.hypot(e.clientX - (rect.left + rect.width / 2), e.clientY - (rect.top + rect.height / 2));
 
-        if (dist <= 40) {
+        if (dist <= 42) {
             hit = true;
             shatterClay(item.el, e.clientX, e.clientY);
             activeClays.splice(i, 1);
 
-            // スコア計算: スピード判定 + 初弾ボーナス + コンボ倍率
             const flightTime = (Date.now() - item.spawnTime) / 1000;
             const speedBonus = Math.max(50, Math.floor(250 - flightTime * 100));
             const firstShotBonus = (ammo === 1) ? 100 : 50;
@@ -96,15 +148,18 @@ function reload() {
     if (isReloading || ammo === 2) return;
     isReloading = true;
     ammoEl.innerText = "装填中...";
+
+    // 高音質MP3再生 + 明瞭な金属ラッチ効果音を同時出力
     const sound = reloadSound.cloneNode();
-    sound.volume = 0.7;
+    sound.volume = 1.0;
     sound.play().catch(() => {});
+    playSynthReload();
 
     setTimeout(() => {
         ammo = 2;
         isReloading = false;
         updateUI();
-    }, 900);
+    }, 750);
 }
 
 function resetCombo() {
@@ -121,8 +176,8 @@ function updateUI() {
 }
 
 function shakeScreen() {
-    const rx = (Math.random() - 0.5) * 10;
-    const ry = (Math.random() - 0.5) * 10;
+    const rx = (Math.random() - 0.5) * 12;
+    const ry = (Math.random() - 0.5) * 12;
     container.style.transform = `translate(${rx}px, ${ry}px)`;
     setTimeout(() => container.style.transform = 'translate(0, 0)', 50);
 }
@@ -130,10 +185,10 @@ function shakeScreen() {
 function shatterClay(el, x, y) {
     el.remove();
     const sound = breakSound.cloneNode();
-    sound.volume = 0.7;
+    sound.volume = 0.9;
     sound.play().catch(() => {});
 
-    for (let i = 0; i < 14; i++) {
+    for (let i = 0; i < 16; i++) {
         const p = document.createElement('div');
         p.className = 'particle';
         p.style.left = x + 'px';
@@ -141,7 +196,7 @@ function shatterClay(el, x, y) {
         container.appendChild(p);
 
         const angle = Math.random() * Math.PI * 2;
-        const speed = 2 + Math.random() * 5;
+        const speed = 2 + Math.random() * 6;
         let px = x, py = y;
         let vx = Math.cos(angle) * speed;
         let vy = Math.sin(angle) * speed;
@@ -150,7 +205,7 @@ function shatterClay(el, x, y) {
         function animP() {
             px += vx;
             py += vy;
-            vy += 0.2; // 重力
+            vy += 0.22;
             p.style.left = px + 'px';
             p.style.top = py + 'px';
             life--;
@@ -165,7 +220,6 @@ function nextTurn() {
     if (!isPlaying) return;
     setTimeout(() => {
         if (!isPlaying) return;
-        // コンボに応じてダブル出現
         const isDouble = combo >= 5 || Math.random() < 0.25;
         spawnClay();
         if (isDouble) setTimeout(spawnClay, 250);
@@ -177,12 +231,11 @@ function spawnClay() {
     el.className = 'clay';
     container.appendChild(el);
 
-    const startX = window.innerWidth * (0.35 + Math.random() * 0.3);
-    const startY = window.innerHeight * 0.9;
-    const targetX = (Math.random() - 0.5) * window.innerWidth * 1.2 + window.innerWidth * 0.5;
-    const targetY = window.innerHeight * (0.15 + Math.random() * 0.2);
+    const startX = window.innerWidth * (0.42 + Math.random() * 0.16);
+    const startY = window.innerHeight * 0.82; // バンカー開口部付近から射出
+    const targetX = (Math.random() - 0.5) * window.innerWidth * 1.3 + window.innerWidth * 0.5;
+    const targetY = window.innerHeight * (0.12 + Math.random() * 0.22);
 
-    // コンボ連動速度
     const speedFactor = Math.min(2.0, 1 + combo * 0.08);
     const duration = Math.max(1200, 2400 / speedFactor);
 
@@ -205,7 +258,7 @@ function spawnClay() {
 
         const curX = startX + (targetX - startX) * p;
         const curY = startY - 4 * (startY - targetY) * p * (1 - p);
-        const scale = 1 - p * 0.6; // 遠ざかり演出
+        const scale = 1 - p * 0.62;
 
         el.style.left = curX + 'px';
         el.style.top = curY + 'px';
@@ -223,6 +276,7 @@ function checkRoundEnd() {
 }
 
 function startGame() {
+    getAudioContext();
     score = 0;
     time = 60;
     ammo = 2;

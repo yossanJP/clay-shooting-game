@@ -10,71 +10,94 @@ body {
     width: 100vw;
     height: 100vh;
     position: relative;
-    background: radial-gradient(circle at center, #87CEEB 0%, #4682B4 70%, #2F4F4F 100%);
     cursor: none;
     overflow: hidden;
+}
+#background-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 1;
+}
+#bg-svg {
+    width: 100%; height: 100%;
+    display: block;
 }
 #flash-overlay {
     position: absolute;
     top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(255, 255, 200, 0.6);
+    background-color: rgba(255, 255, 210, 0.7);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.05s ease-out;
+    transition: opacity 0.04s ease-out;
     z-index: 50;
 }
 #ui-layer {
     position: absolute;
     top: 15px; left: 20px;
     display: flex;
-    gap: 30px;
+    gap: 25px;
     pointer-events: none;
     color: #fff;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    text-shadow: 2px 2px 5px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.5);
     font-size: 22px;
-    font-weight: bold;
+    font-weight: 800;
     z-index: 100;
+}
+.ui-box {
+    background: rgba(0, 0, 0, 0.45);
+    padding: 6px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(4px);
 }
 #instruction-display {
     position: absolute;
     top: 15px; right: 20px;
-    color: #eee;
+    color: #fff;
     font-size: 15px;
     text-align: right;
-    text-shadow: 1px 1px 3px rgba(0,0,0,0.8);
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.9);
+    background: rgba(0, 0, 0, 0.45);
+    padding: 8px 14px;
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.25);
+    backdrop-filter: blur(4px);
     pointer-events: none;
     z-index: 100;
 }
 #crosshair {
     position: absolute;
-    width: 32px; height: 32px;
+    width: 34px; height: 34px;
     border: 2px solid #00ff66;
     border-radius: 50%;
     transform: translate(-50%, -50%);
     pointer-events: none;
     z-index: 150;
+    box-shadow: 0 0 8px rgba(0, 255, 102, 0.6);
 }
 #crosshair::before, #crosshair::after {
     content: '';
     position: absolute;
     background: #00ff66;
 }
-#crosshair::before { top: 50%; left: -6px; right: -6px; height: 2px; transform: translateY(-50%); }
-#crosshair::after { left: 50%; top: -6px; bottom: -6px; width: 2px; transform: translateX(-50%); }
+#crosshair::before { top: 50%; left: -8px; right: -8px; height: 2px; transform: translateY(-50%); }
+#crosshair::after { left: 50%; top: -8px; bottom: -8px; width: 2px; transform: translateX(-50%); }
 
 .clay {
     position: absolute;
-    width: 50px; height: 16px;
+    width: 54px; height: 18px;
     border-radius: 50%;
-    background: radial-gradient(ellipse at center, #ff4500 0%, #b22222 100%);
-    box-shadow: 0 4px 6px rgba(0,0,0,0.4);
+    background: radial-gradient(ellipse at center, #ff4500 0%, #b22222 80%, #5a1111 100%);
+    box-shadow: 0 5px 8px rgba(0,0,0,0.5);
     transform: translate(-50%, -50%);
     pointer-events: none;
+    z-index: 20;
 }
 
 .particle {
     position: absolute;
-    width: 6px; height: 6px;
+    width: 7px; height: 7px;
     background: #ff4500;
     border-radius: 2px;
     pointer-events: none;
@@ -95,14 +118,14 @@ body {
 .hidden { display: none !important; }
 button {
     margin-top: 20px;
-    padding: 12px 28px;
-    font-size: 20px;
+    padding: 14px 32px;
+    font-size: 22px;
     font-weight: bold;
     cursor: pointer;
     background: #ff4500;
     color: white;
     border: none;
     border-radius: 6px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
 }
 button:hover { background: #d03700; }

@@ -7,6 +7,62 @@
 </head>
 <body>
     <div id="game-container">
+        <!-- 背景レイヤー: SVG/CSS生成によるリアルな射撃場（青空・遠景の山・射撃台） -->
+        <div id="background-layer">
+            <svg id="bg-svg" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+                <defs>
+                    <linearGradient id="skyGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#3a88e9"/>
+                        <stop offset="45%" stop-color="#72b5f6"/>
+                        <stop offset="70%" stop-color="#bfe3ff"/>
+                        <stop offset="85%" stop-color="#eaf5ff"/>
+                    </linearGradient>
+                    <linearGradient id="mountainsBack" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#4a6572"/>
+                        <stop offset="100%" stop-color="#2c3e50"/>
+                    </linearGradient>
+                    <linearGradient id="mountainsMid" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2d5a3f"/>
+                        <stop offset="100%" stop-color="#1b3826"/>
+                    </linearGradient>
+                    <linearGradient id="groundGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#34683c"/>
+                        <stop offset="40%" stop-color="#28522f"/>
+                        <stop offset="100%" stop-color="#1e3d23"/>
+                    </linearGradient>
+                    <linearGradient id="bunkerGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#4a7c59"/>
+                        <stop offset="50%" stop-color="#3d664a"/>
+                        <stop offset="100%" stop-color="#233d2c"/>
+                    </linearGradient>
+                </defs>
+                <!-- 空 -->
+                <rect width="1920" height="1080" fill="url(#skyGrad)"/>
+                
+                <!-- 遠くの雲 -->
+                <ellipse cx="300" cy="220" rx="220" ry="45" fill="rgba(255,255,255,0.45)"/>
+                <ellipse cx="420" cy="200" rx="160" ry="55" fill="rgba(255,255,255,0.6)"/>
+                <ellipse cx="1500" cy="280" rx="280" ry="50" fill="rgba(255,255,255,0.4)"/>
+                <ellipse cx="1650" cy="260" rx="190" ry="60" fill="rgba(255,255,255,0.55)"/>
+
+                <!-- 最奥の山並み -->
+                <polygon points="0,680 180,620 420,650 680,580 940,640 1200,570 1480,630 1740,590 1920,640 1920,1080 0,1080" fill="url(#mountainsBack)" opacity="0.65"/>
+
+                <!-- 中景の山・森 -->
+                <polygon points="0,730 240,680 520,720 780,660 1060,710 1340,650 1620,700 1920,670 1920,1080 0,1080" fill="url(#mountainsMid)" opacity="0.85"/>
+
+                <!-- 射撃場の広大な芝生エリア -->
+                <polygon points="0,750 1920,750 1920,1080 0,1080" fill="url(#groundGrad)"/>
+
+                <!-- トラップ射撃の地下放出ピット（バンカー）の土手マウンド -->
+                <ellipse cx="960" cy="880" rx="580" ry="110" fill="url(#bunkerGrad)"/>
+                <!-- ピット開口部の影 -->
+                <rect x="760" y="850" width="400" height="24" rx="12" fill="#152419" opacity="0.85"/>
+                <!-- 距離マーカー白線 -->
+                <ellipse cx="960" cy="980" rx="720" ry="80" fill="none" stroke="rgba(255,255,255,0.2)" stroke-width="4" stroke-dasharray="16,16"/>
+            </svg>
+        </div>
+
         <div id="flash-overlay"></div>
         <div id="ui-layer">
             <div class="ui-box">TIME: <span id="time">60</span></div>
