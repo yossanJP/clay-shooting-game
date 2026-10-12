@@ -1,14 +1,19 @@
-【GitHubにv19を反映する手順】
-1. このZIPを展開します（ZIPのままGitHubへ置かない）。
-2. https://github.com/yossanJP/clay-shooting-game を開きます。
-3. Add file → Upload files を押します。
-4. 展開したフォルダの中身（index.html、script.js、style.css、img、ui、sounds、preview、README.md、CARTRIDGE_BUILD_NOTES.mdなど）をドラッグします。外側のフォルダはドラッグしないでください。
-5. Commit changes を押します。上書き対象は新版としてコミットします。
-6. リポジトリのルートに index.html、img/、ui/、sounds/ があるか確認します。
-7. 古い未使用の img/Image_*.png / img/Image_*.jpeg は不要です。残っていてもv19の動作には使われません。
+【CLAY SHOOTING / GitHub 最新版 v27】
+GitHubへのアップロードは完了済みです。ZIPの再アップロードは不要です。
 
-注意：GitHub更新だけではCartridge内のゲームが自動で更新されるとは限りません。
-・新規ゲーム：Cartridgeのゲーム企画欄にこのGitHub公開URLを渡し、別途トークンの立ち上げ操作が必要です。
-・既存ゲーム：Cartridge側のゲームURLが必要です。現在の更新方法を公式画面で確認します。
-・スコア保存／公式ランキング連携は本ソース単体にはまだ実装されていません。
-・公式AI builderがコード再利用前にライセンスをチェックするため、公開利用する前にコードと画像／音の権利条件を確認してください。
+ソース:
+https://github.com/yossanJP/clay-shooting-game
+
+公開テスト:
+https://yossanjp.github.io/clay-shooting-game/
+
+CartridgeのGAME IDEA欄には、上記GitHubリポジトリを明記し、
+「v27の既存ソースを使用。ゲームをゼロから作り直さない」
+と指示してください。
+
+Cartridgeのプラットフォーム向けスコア提出・ランキング連携は未実装です。
+Cartridge側の正式APIで統合・テストが必要です。
+
+注意: CartridgeのLaunchはPump.funトークン発行を伴います。
+GitHubへのアップロードと異なり、ウォレットでの承認が必要です。
+ライセンス・素材の権利はリポジトリ所有者が確認してください。
