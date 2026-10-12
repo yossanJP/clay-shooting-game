@@ -767,3 +767,20 @@ button:hover { background: #d03700; }
 @media (pointer:coarse) and (orientation:landscape) and (max-height:550px) {
     #mobile-sensitivity { font-size:9px; min-height:19px; padding:2px 6px; }
 }
+
+/* v27: make the LEFT controller's physical touch target forgiving
+   while keeping the visible round pad in virtually the same place. */
+@media (pointer:coarse) {
+    #game-container.mobile-playing #mobile-joystick {
+        width:170px;
+        height:184px;
+        transform:translateX(-18px);
+    }
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:550px) {
+    #game-container.mobile-playing #mobile-joystick {
+        width:154px;
+        height:154px;
+        transform:translateX(-18px);
+    }
+}
