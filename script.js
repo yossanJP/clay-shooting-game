@@ -146,11 +146,11 @@ function updateGunAim(x, y) {
 function handleMouseMove(e) {
     pointerX = e.clientX;
     pointerY = e.clientY;
-    // Aim stays responsive during reload but updates at most once per frame.
+    // Reticle must react immediately; throttle only the heavier gun pose.
+    setCrosshair(pointerX, pointerY);
     if (pendingAimFrame) return;
     pendingAimFrame = requestAnimationFrame(() => {
         pendingAimFrame = 0;
-        setCrosshair(pointerX, pointerY);
         updateGunAim(pointerX, pointerY);
     });
 }
@@ -283,7 +283,14 @@ function reload() {
 
     try { reloadSound.currentTime = 0; reloadSound.play().catch(() => {}); } catch (_) {}
 
-    fpsGun.classList.add('gun-reload');
+    // Animate the child gun image only, never the aim container.
+    if (gunRecoilAnimation) gunRecoilAnimation.cancel();
+    gunRecoilAnimation = gunImage.animate([
+        { transform: 'translate3d(0, 0, 0) rotate(0deg)' },
+        { transform: 'translate3d(0, 26px, 0) rotate(3deg)', offset: 0.4 },
+        { transform: 'translate3d(0, 10px, 0) rotate(1deg)', offset: 0.8 },
+        { transform: 'translate3d(0, 0, 0) rotate(0deg)' }
+    ], { duration: 760, easing: 'ease-in-out' });
 
     reloadTimer = setTimeout(() => {
         reloadTimer = null;
