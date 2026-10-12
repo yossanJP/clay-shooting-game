@@ -144,11 +144,13 @@ function updateGunAim(x, y) {
     fpsGun.style.setProperty('--aim-pitch', `${(-ny * 9).toFixed(2)}deg`);
 }
 
-function handleMouseMove(e) {
-    pointerX = e.clientX;
-    pointerY = e.clientY;
-    // High-polling mice can flood the renderer. Update reticle and gun
-    // together once per animation frame using the latest pointer coordinates.
+// One aim update per display frame for mouse and touch alike.
+let mobileAimPointerId = null;
+let mobileLastX = 0, mobileLastY = 0, lastTouchAt = 0;
+const mobileFireButton = document.getElementById('mobile-fire');
+const mobileReloadButton = document.getElementById('mobile-reload');
+
+function scheduleAim() {
     if (pendingAimFrame) return;
     pendingAimFrame = requestAnimationFrame(() => {
         pendingAimFrame = 0;
@@ -156,26 +158,74 @@ function handleMouseMove(e) {
         updateGunAim(pointerX, pointerY);
     });
 }
-
+function handleMouseMove(e) {
+    if (Date.now() - lastTouchAt < 650) return; // Suppress synthesized mouse events after a touch.
+    pointerX = e.clientX;
+    pointerY = e.clientY;
+    scheduleAim();
+}
 document.addEventListener('mousemove', handleMouseMove);
-window.addEventListener('resize', () => updateGunAim(pointerX, pointerY));
+window.addEventListener('resize', () => scheduleAim());
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-document.addEventListener('mousedown', (e) => {
+// Mobile: relative dragging avoids covering the reticle with the aiming finger.
+// Pointer capture keeps aiming smooth when the finger crosses targets/overlays.
+container.addEventListener('pointerdown', e => {
+    if (e.pointerType === 'mouse' || !isPlaying || mobileAimPointerId !== null) return;
+    if (e.target.closest('#mobile-controls, #start-screen, #game-over-screen')) return;
+    e.preventDefault();
+    mobileAimPointerId = e.pointerId;
+    mobileLastX = e.clientX;
+    mobileLastY = e.clientY;
+    lastTouchAt = Date.now();
+    try { container.setPointerCapture(e.pointerId); } catch (_) {}
+});
+container.addEventListener('pointermove', e => {
+    if (e.pointerId !== mobileAimPointerId) return;
+    e.preventDefault();
+    lastTouchAt = Date.now();
+    pointerX = clamp(pointerX + (e.clientX - mobileLastX) * 1.2, 12, innerWidth - 12);
+    pointerY = clamp(pointerY + (e.clientY - mobileLastY) * 1.2, 12, innerHeight - 12);
+    mobileLastX = e.clientX;
+    mobileLastY = e.clientY;
+    scheduleAim();
+});
+function stopMobileAim(e) {
+    if (e.pointerId !== mobileAimPointerId) return;
+    mobileAimPointerId = null;
+    lastTouchAt = Date.now();
+    try { if (container.hasPointerCapture(e.pointerId)) container.releasePointerCapture(e.pointerId); } catch (_) {}
+}
+container.addEventListener('pointerup', stopMobileAim);
+container.addEventListener('pointercancel', stopMobileAim);
+window.addEventListener('blur', () => { mobileAimPointerId = null; });
+function mobileShoot() {
     if (!isPlaying) return;
     getAudioContext();
-    if (e.button === 0) {
-        shoot(e);
-    } else if (e.button === 2) {
-        reload();
-    }
+    shoot({clientX: pointerX, clientY: pointerY});
+}
+mobileFireButton.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation(); lastTouchAt = Date.now();
+    mobileShoot();
 });
+mobileReloadButton.addEventListener('pointerdown', e => {
+    e.preventDefault(); e.stopPropagation(); lastTouchAt = Date.now();
+    if (isPlaying) { getAudioContext(); reload(); }
+});
+// Keyboard activation on accessible mobile buttons.
+mobileFireButton.addEventListener('click', e => { e.stopPropagation(); if (e.detail === 0) mobileShoot(); });
+mobileReloadButton.addEventListener('click', e => { e.stopPropagation(); if (e.detail === 0 && isPlaying) reload(); });
 
+document.addEventListener('mousedown', (e) => {
+    if (!isPlaying || e.target.closest('#mobile-controls')) return;
+    if (Date.now() - lastTouchAt < 650) return;
+    getAudioContext();
+    if (e.button === 0) shoot(e);
+    else if (e.button === 2) reload();
+});
 document.addEventListener('keydown', (e) => {
     if (!isPlaying) return;
-    if (e.key.toLowerCase() === 'r') {
-        reload();
-    }
+    if (e.key.toLowerCase() === 'r') reload();
 });
 
 function playGunRecoil() {
@@ -359,7 +409,8 @@ function shatterClay(el, x, y, special = false) {
     // requestAnimationFrame callback 34 times, causing spikes on successful hits.
     const group = document.createDocumentFragment();
     const fragments = [];
-    for (let i = 0; i < 9; i++) {
+    const particleCount = window.matchMedia('(pointer:coarse)').matches ? 5 : 9;
+    for (let i = 0; i < particleCount; i++) {
         const p = document.createElement('div');
         p.className = special ? 'particle particle-gold' : 'particle';
         p.style.left = x + 'px';
@@ -591,6 +642,7 @@ function startGame() {
     maxCombo = 0;
     isReloading = false;
     isPlaying = true;
+    container.classList.add('mobile-playing');
     activeClays.forEach(c => c.el.remove());
     activeClays = [];
     Object.keys(stats).forEach(key => { stats[key] = 0; });
@@ -608,6 +660,8 @@ function startGame() {
 function endGame() {
     if (!isPlaying) return;
     isPlaying = false;
+    mobileAimPointerId = null;
+    container.classList.remove('mobile-playing');
     if (roundFrame !== null) cancelAnimationFrame(roundFrame);
     roundFrame = null;
     if (reloadTimer !== null) {
