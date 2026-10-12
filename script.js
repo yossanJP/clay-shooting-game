@@ -153,6 +153,12 @@ let mobileLastTouchY = 0;
 const MOBILE_DRAG_SENSITIVITY = 1.4; // 40% faster dragging; tap-to-aim stays exact.
 const mobileFireButton = document.getElementById('mobile-fire');
 const mobileReloadButton = document.getElementById('mobile-reload');
+const mobileJoystick = document.getElementById('mobile-joystick');
+const mobileJoystickRing = document.getElementById('mobile-joystick-ring');
+const mobileJoystickThumb = document.getElementById('mobile-joystick-thumb');
+let joystickPointerId = null;
+let joystickCenterX = 0, joystickCenterY = 0, joystickTravel = 37;
+let joystickX = 0, joystickY = 0, joystickLastFrame = 0;
 
 function scheduleAim() {
     if (pendingAimFrame) return;
@@ -194,7 +200,7 @@ function aimFromTouch(touch, isNewTouch = false) {
     scheduleAim();
 }
 container.addEventListener('touchstart', e => {
-    if (!isPlaying || e.target.closest('#mobile-controls, #start-screen, #game-over-screen')) return;
+    if (!isPlaying || e.target.closest('#mobile-controls, #mobile-joystick, #start-screen, #game-over-screen')) return;
     const touch = e.changedTouches[0];
     if (!touch) return;
     e.preventDefault();
@@ -224,10 +230,81 @@ function finishMobileTouch(e) {
 }
 window.addEventListener('touchend', finishMobileTouch);
 window.addEventListener('touchcancel', finishMobileTouch);
-window.addEventListener('blur', () => { mobileTouchId = null; });
+window.addEventListener('blur', () => { mobileTouchId = null; resetMobileJoystick(); });
 document.addEventListener('visibilitychange', () => {
-    if (document.hidden) mobileTouchId = null;
+    if (document.hidden) { mobileTouchId = null; resetMobileJoystick(); }
 });
+
+// The left thumb stick moves the reticle continuously; small movements remain
+// precise while a full deflection traverses the range quickly.
+// Uses the existing round animation frame: no extra RAF or timers to accumulate.
+function resetMobileJoystick() {
+    joystickPointerId = null;
+    joystickX = 0;
+    joystickY = 0;
+    joystickLastFrame = 0;
+    mobileJoystick.classList.remove('active');
+    mobileJoystickThumb.style.transform = 'translate3d(0,0,0)';
+}
+function updateMobileJoystick(e) {
+    const dx = e.clientX - joystickCenterX;
+    const dy = e.clientY - joystickCenterY;
+    const length = Math.hypot(dx, dy);
+    const fraction = Math.min(1, length / joystickTravel);
+    const size = Math.max(0, (fraction - 0.08) / 0.92);
+    const unitX = length > 0 ? dx / length : 0;
+    const unitY = length > 0 ? dy / length : 0;
+    joystickX = unitX * size;
+    joystickY = unitY * size;
+    const knobLength = joystickTravel * fraction;
+    mobileJoystickThumb.style.transform = 'translate3d(' +
+        (unitX * knobLength).toFixed(1) + 'px,' +
+        (unitY * knobLength).toFixed(1) + 'px,0)';
+}
+mobileJoystick.addEventListener('pointerdown', e => {
+    if (!isPlaying || joystickPointerId !== null) return;
+    e.preventDefault();
+    e.stopPropagation();
+    lastTouchAt = Date.now();
+    joystickPointerId = e.pointerId;
+    mobileJoystick.classList.add('active');
+    const box = mobileJoystickRing.getBoundingClientRect();
+    joystickCenterX = box.left + box.width / 2;
+    joystickCenterY = box.top + box.height / 2;
+    joystickTravel = Math.max(24, (box.width - 48) / 2);
+    try { mobileJoystick.setPointerCapture(e.pointerId); } catch (_) {}
+    updateMobileJoystick(e);
+});
+mobileJoystick.addEventListener('pointermove', e => {
+    if (joystickPointerId !== e.pointerId) return;
+    e.preventDefault();
+    lastTouchAt = Date.now();
+    updateMobileJoystick(e);
+});
+function stopJoystick(e) {
+    if (joystickPointerId !== e.pointerId) return;
+    resetMobileJoystick();
+}
+mobileJoystick.addEventListener('pointerup', stopJoystick);
+mobileJoystick.addEventListener('pointercancel', stopJoystick);
+mobileJoystick.addEventListener('lostpointercapture', stopJoystick);
+
+function stepMobileJoystick(frameTime) {
+    if (joystickPointerId === null || !isPlaying) {
+        joystickLastFrame = 0;
+        return;
+    }
+    const dt = joystickLastFrame ? Math.min((frameTime - joystickLastFrame) / 1000, 0.04) : 0;
+    joystickLastFrame = frameTime;
+    const magnitude = Math.hypot(joystickX, joystickY);
+    if (dt <= 0 || magnitude <= 0) return;
+    const speed = 100 + 980 * Math.pow(magnitude, 1.5);
+    const travel = speed * dt / magnitude;
+    pointerX = clamp(pointerX + joystickX * travel, 12, Math.max(12, innerWidth - 12));
+    pointerY = clamp(pointerY + joystickY * travel, 12, Math.max(12, innerHeight - 12));
+    setCrosshair(pointerX, pointerY);
+    updateGunAim(pointerX, pointerY);
+}
 
 function mobileShoot() {
     if (!isPlaying) return;
@@ -521,6 +598,7 @@ function retireClay(target) {
 
 function roundLoop(frameTime) {
     if (!isPlaying) return;
+    stepMobileJoystick(frameTime);
     const elapsed = (frameTime - roundStartedAt) / 1000;
     if (elapsed >= ROUND_SECONDS) { endGame(); return; }
 
@@ -673,6 +751,13 @@ function startGame() {
     isReloading = false;
     isPlaying = true;
     mobileTouchId = null;
+    resetMobileJoystick();
+    if (window.matchMedia('(pointer:coarse)').matches) {
+        pointerX = innerWidth * 0.5;
+        pointerY = innerHeight * 0.45;
+        setCrosshair(pointerX, pointerY);
+        updateGunAim(pointerX, pointerY);
+    }
     container.classList.add('mobile-playing');
     activeClays.forEach(c => c.el.remove());
     activeClays = [];
@@ -692,6 +777,7 @@ function endGame() {
     if (!isPlaying) return;
     isPlaying = false;
     mobileTouchId = null;
+    resetMobileJoystick();
     container.classList.remove('mobile-playing');
     if (roundFrame !== null) cancelAnimationFrame(roundFrame);
     roundFrame = null;
