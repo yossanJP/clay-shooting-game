@@ -146,11 +146,7 @@ function updateGunAim(x, y) {
 
 // PC aim and mobile aim use the same shot coordinates.
 // Touches use direct positioning, not an accumulated relative offset.
-let mobileTouchId = null;
 let lastTouchAt = 0;
-let mobileLastTouchX = 0;
-let mobileLastTouchY = 0;
-const MOBILE_DRAG_SENSITIVITY = 1.4; // 40% faster dragging; tap-to-aim stays exact.
 const mobileFireButton = document.getElementById('mobile-fire');
 const mobileReloadButton = document.getElementById('mobile-reload');
 const mobileJoystick = document.getElementById('mobile-joystick');
@@ -159,12 +155,24 @@ const mobileJoystickThumb = document.getElementById('mobile-joystick-thumb');
 const mobileSensitivityButton = document.getElementById('mobile-sensitivity');
 // Trackpad aim: gain is pixels of crosshair motion per pixel of finger motion.
 // Pointer held still means zero movement, regardless of how far from center.
-const TRACKPAD_GAINS = [0.85, 1.0, 1.35];
+const TRACKPAD_GAINS = [1.1, 1.4, 1.75];
 const JOYSTICK_SPEED_LABELS = ['LOW', 'MID', 'HIGH'];
 let joystickSensitivityIndex = 0;
 let joystickPointerId = null;
 let joystickCenterX = 0, joystickCenterY = 0, joystickTravel = 37;
 let joystickLastX = 0, joystickLastY = 0;
+let joystickSafeRight = 0, joystickSafeTop = 0;
+
+function limitMobileAim(x, y) {
+    // Prevent the reticle from vanishing behind the left controller.
+    // A gradual edge over 70px avoids an abrupt snap when moving right.
+    const safeMaxX = Math.max(12, innerWidth - 12);
+    const safeMaxY = Math.max(12, innerHeight - 12);
+    const posX = clamp(x, 12, safeMaxX);
+    const spread = clamp((posX - joystickSafeRight) / 70, 0, 1);
+    const maxY = joystickSafeTop + (safeMaxY - joystickSafeTop) * spread;
+    return [posX, clamp(y, 12, Math.max(12, maxY))];
+}
 
 function scheduleAim() {
     if (pendingAimFrame) return;
@@ -184,66 +192,20 @@ document.addEventListener('mousemove', handleMouseMove);
 window.addEventListener('resize', () => scheduleAim());
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-// iOS/Android: touch the desired aim point to move the crosshair there
-// instantly. The player can also drag to fine tune. No pointer capture or
-// relative offset: a cancelled/missed touch cannot permanently lock aiming.
-function aimFromTouch(touch, isNewTouch = false) {
-    const maxX = Math.max(12, innerWidth - 12);
-    const maxY = Math.max(12, innerHeight - 12);
-    if (isNewTouch) {
-        // Preserve precise one-tap targeting: land on the touched spot.
-        pointerX = clamp(touch.clientX, 12, maxX);
-        pointerY = clamp(touch.clientY, 12, maxY);
-    } else {
-        // Only drag movement is accelerated, not the initial tap.
-        pointerX = clamp(pointerX + (touch.clientX - mobileLastTouchX) * MOBILE_DRAG_SENSITIVITY, 12, maxX);
-        pointerY = clamp(pointerY + (touch.clientY - mobileLastTouchY) * MOBILE_DRAG_SENSITIVITY, 12, maxY);
-    }
-    mobileLastTouchX = touch.clientX;
-    mobileLastTouchY = touch.clientY;
-    lastTouchAt = Date.now();
-    setCrosshair(pointerX, pointerY);
-    scheduleAim();
-}
+// Mobile uses the LEFT PAD ONLY for aiming. A touch on the field should
+// neither teleport the reticle nor synthesize a mouse shot.
 container.addEventListener('touchstart', e => {
-    if (!isPlaying || e.target.closest('#mobile-controls, #mobile-joystick, #start-screen, #game-over-screen')) return;
-    const touch = e.changedTouches[0];
-    if (!touch) return;
+    if (!isPlaying) return;
+    if (e.target.closest('#mobile-controls, #mobile-joystick, #start-screen, #game-over-screen')) return;
+    lastTouchAt = Date.now();
     e.preventDefault();
-    // Replace a stale tracking id with the new tap (including interrupted gestures).
-    mobileTouchId = touch.identifier;
-    aimFromTouch(touch, true);
 }, {passive:false});
-window.addEventListener('touchmove', e => {
-    if (!isPlaying || mobileTouchId === null) return;
-    let touch = null;
-    for (let i = 0; i < e.touches.length; i++) {
-        if (e.touches[i].identifier === mobileTouchId) { touch = e.touches[i]; break; }
-    }
-    if (!touch) return;
-    e.preventDefault();
-    aimFromTouch(touch);
-}, {passive:false});
-function finishMobileTouch(e) {
-    if (mobileTouchId === null) return;
-    for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === mobileTouchId) {
-            mobileTouchId = null;
-            lastTouchAt = Date.now();
-            break;
-        }
-    }
-}
-window.addEventListener('touchend', finishMobileTouch);
-window.addEventListener('touchcancel', finishMobileTouch);
-window.addEventListener('blur', () => { mobileTouchId = null; resetMobileJoystick(); });
+
+window.addEventListener('blur', () => { resetMobileJoystick(); });
 document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { mobileTouchId = null; resetMobileJoystick(); }
+    if (document.hidden) resetMobileJoystick();
 });
 
-// The left thumb stick moves the reticle continuously; small movements remain
-// precise while a full deflection traverses the range quickly.
-// Uses the existing round animation frame: no extra RAF or timers to accumulate.
 // Left thumb controller behaves as a trackpad, not a velocity stick:
 // delta of finger displacement -> matching reticle displacement, no inertia.
 function resetMobileJoystick() {
@@ -278,6 +240,9 @@ mobileJoystick.addEventListener('pointerdown', e => {
     joystickCenterX = box.left + box.width / 2;
     joystickCenterY = box.top + box.height / 2;
     joystickTravel = Math.max(24, (box.width - 48) / 2);
+    const guard = mobileJoystick.getBoundingClientRect();
+    joystickSafeRight = guard.right + 5;
+    joystickSafeTop = guard.top - 9;
     try { mobileJoystick.setPointerCapture(e.pointerId); } catch (_) {}
     paintMobileJoystickThumb(e);
     // No movement on press, even if the thumb is off-center.
@@ -293,8 +258,10 @@ mobileJoystick.addEventListener('pointermove', e => {
     paintMobileJoystickThumb(e);
     if (dx === 0 && dy === 0) return;
     const gain = TRACKPAD_GAINS[joystickSensitivityIndex];
-    pointerX = clamp(pointerX + dx * gain, 12, Math.max(12, innerWidth - 12));
-    pointerY = clamp(pointerY + dy * gain, 12, Math.max(12, innerHeight - 12));
+    [pointerX, pointerY] = limitMobileAim(
+        pointerX + dx * gain,
+        pointerY + dy * gain
+    );
     setCrosshair(pointerX, pointerY);
     scheduleAim();
 });
@@ -762,7 +729,6 @@ function startGame() {
     maxCombo = 0;
     isReloading = false;
     isPlaying = true;
-    mobileTouchId = null;
     resetMobileJoystick();
     if (window.matchMedia('(pointer:coarse)').matches) {
         pointerX = innerWidth * 0.5;
@@ -788,7 +754,6 @@ function startGame() {
 function endGame() {
     if (!isPlaying) return;
     isPlaying = false;
-    mobileTouchId = null;
     resetMobileJoystick();
     container.classList.remove('mobile-playing');
     if (roundFrame !== null) cancelAnimationFrame(roundFrame);
