@@ -148,6 +148,9 @@ function updateGunAim(x, y) {
 // Touches use direct positioning, not an accumulated relative offset.
 let mobileTouchId = null;
 let lastTouchAt = 0;
+let mobileLastTouchX = 0;
+let mobileLastTouchY = 0;
+const MOBILE_DRAG_SENSITIVITY = 1.4; // 40% faster dragging; tap-to-aim stays exact.
 const mobileFireButton = document.getElementById('mobile-fire');
 const mobileReloadButton = document.getElementById('mobile-reload');
 
@@ -172,11 +175,21 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 // iOS/Android: touch the desired aim point to move the crosshair there
 // instantly. The player can also drag to fine tune. No pointer capture or
 // relative offset: a cancelled/missed touch cannot permanently lock aiming.
-function aimFromTouch(touch) {
-    pointerX = clamp(touch.clientX, 12, Math.max(12, innerWidth - 12));
-    pointerY = clamp(touch.clientY, 12, Math.max(12, innerHeight - 12));
+function aimFromTouch(touch, isNewTouch = false) {
+    const maxX = Math.max(12, innerWidth - 12);
+    const maxY = Math.max(12, innerHeight - 12);
+    if (isNewTouch) {
+        // Preserve precise one-tap targeting: land on the touched spot.
+        pointerX = clamp(touch.clientX, 12, maxX);
+        pointerY = clamp(touch.clientY, 12, maxY);
+    } else {
+        // Only drag movement is accelerated, not the initial tap.
+        pointerX = clamp(pointerX + (touch.clientX - mobileLastTouchX) * MOBILE_DRAG_SENSITIVITY, 12, maxX);
+        pointerY = clamp(pointerY + (touch.clientY - mobileLastTouchY) * MOBILE_DRAG_SENSITIVITY, 12, maxY);
+    }
+    mobileLastTouchX = touch.clientX;
+    mobileLastTouchY = touch.clientY;
     lastTouchAt = Date.now();
-    // Crosshair updates immediately on tap; gun pose is coalesced to a frame.
     setCrosshair(pointerX, pointerY);
     scheduleAim();
 }
@@ -187,7 +200,7 @@ container.addEventListener('touchstart', e => {
     e.preventDefault();
     // Replace a stale tracking id with the new tap (including interrupted gestures).
     mobileTouchId = touch.identifier;
-    aimFromTouch(touch);
+    aimFromTouch(touch, true);
 }, {passive:false});
 window.addEventListener('touchmove', e => {
     if (!isPlaying || mobileTouchId === null) return;
