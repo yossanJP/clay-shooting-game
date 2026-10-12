@@ -157,14 +157,14 @@ const mobileJoystick = document.getElementById('mobile-joystick');
 const mobileJoystickRing = document.getElementById('mobile-joystick-ring');
 const mobileJoystickThumb = document.getElementById('mobile-joystick-thumb');
 const mobileSensitivityButton = document.getElementById('mobile-sensitivity');
-// Start with precision aiming, not full-speed movement.
-// 300/450/680 px per second at maximum deflection, vs the previous 1080 px/s.
-const JOYSTICK_MAX_SPEEDS = [300, 450, 680];
+// Trackpad aim: gain is pixels of crosshair motion per pixel of finger motion.
+// Pointer held still means zero movement, regardless of how far from center.
+const TRACKPAD_GAINS = [0.85, 1.0, 1.35];
 const JOYSTICK_SPEED_LABELS = ['LOW', 'MID', 'HIGH'];
 let joystickSensitivityIndex = 0;
 let joystickPointerId = null;
 let joystickCenterX = 0, joystickCenterY = 0, joystickTravel = 37;
-let joystickX = 0, joystickY = 0, joystickLastFrame = 0;
+let joystickLastX = 0, joystickLastY = 0;
 
 function scheduleAim() {
     if (pendingAimFrame) return;
@@ -244,29 +244,25 @@ document.addEventListener('visibilitychange', () => {
 // The left thumb stick moves the reticle continuously; small movements remain
 // precise while a full deflection traverses the range quickly.
 // Uses the existing round animation frame: no extra RAF or timers to accumulate.
+// Left thumb controller behaves as a trackpad, not a velocity stick:
+// delta of finger displacement -> matching reticle displacement, no inertia.
 function resetMobileJoystick() {
     joystickPointerId = null;
-    joystickX = 0;
-    joystickY = 0;
-    joystickLastFrame = 0;
+    joystickLastX = 0;
+    joystickLastY = 0;
     mobileJoystick.classList.remove('active');
     mobileJoystickThumb.style.transform = 'translate3d(0,0,0)';
 }
-function updateMobileJoystick(e) {
+function paintMobileJoystickThumb(e) {
+    // Visual knob follows the thumb but is contained inside the circular ring.
+    // Dragging beyond the ring still moves the crosshair via pointer capture.
     const dx = e.clientX - joystickCenterX;
     const dy = e.clientY - joystickCenterY;
     const length = Math.hypot(dx, dy);
-    const fraction = Math.min(1, length / joystickTravel);
-    // Wider center deadzone prevents drift from tiny thumb movements.
-    const size = Math.max(0, (fraction - 0.17) / 0.83);
-    const unitX = length > 0 ? dx / length : 0;
-    const unitY = length > 0 ? dy / length : 0;
-    joystickX = unitX * size;
-    joystickY = unitY * size;
-    const knobLength = joystickTravel * fraction;
+    const ratio = length > joystickTravel ? joystickTravel / length : 1;
     mobileJoystickThumb.style.transform = 'translate3d(' +
-        (unitX * knobLength).toFixed(1) + 'px,' +
-        (unitY * knobLength).toFixed(1) + 'px,0)';
+        (dx * ratio).toFixed(1) + 'px,' +
+        (dy * ratio).toFixed(1) + 'px,0)';
 }
 mobileJoystick.addEventListener('pointerdown', e => {
     if (e.target.closest('#mobile-sensitivity')) return;
@@ -275,57 +271,53 @@ mobileJoystick.addEventListener('pointerdown', e => {
     e.stopPropagation();
     lastTouchAt = Date.now();
     joystickPointerId = e.pointerId;
+    joystickLastX = e.clientX;
+    joystickLastY = e.clientY;
     mobileJoystick.classList.add('active');
     const box = mobileJoystickRing.getBoundingClientRect();
     joystickCenterX = box.left + box.width / 2;
     joystickCenterY = box.top + box.height / 2;
     joystickTravel = Math.max(24, (box.width - 48) / 2);
     try { mobileJoystick.setPointerCapture(e.pointerId); } catch (_) {}
-    updateMobileJoystick(e);
+    paintMobileJoystickThumb(e);
+    // No movement on press, even if the thumb is off-center.
 });
 mobileJoystick.addEventListener('pointermove', e => {
-    if (joystickPointerId !== e.pointerId) return;
+    if (!isPlaying || joystickPointerId !== e.pointerId) return;
     e.preventDefault();
     lastTouchAt = Date.now();
-    updateMobileJoystick(e);
+    const dx = e.clientX - joystickLastX;
+    const dy = e.clientY - joystickLastY;
+    joystickLastX = e.clientX;
+    joystickLastY = e.clientY;
+    paintMobileJoystickThumb(e);
+    if (dx === 0 && dy === 0) return;
+    const gain = TRACKPAD_GAINS[joystickSensitivityIndex];
+    pointerX = clamp(pointerX + dx * gain, 12, Math.max(12, innerWidth - 12));
+    pointerY = clamp(pointerY + dy * gain, 12, Math.max(12, innerHeight - 12));
+    setCrosshair(pointerX, pointerY);
+    scheduleAim();
 });
 function stopJoystick(e) {
     if (joystickPointerId !== e.pointerId) return;
+    lastTouchAt = Date.now();
     resetMobileJoystick();
 }
 mobileJoystick.addEventListener('pointerup', stopJoystick);
 mobileJoystick.addEventListener('pointercancel', stopJoystick);
 mobileJoystick.addEventListener('lostpointercapture', stopJoystick);
 
-// Players can tune the stick without altering the hitbox or scoring.
+// Adjustable distance scaling; scoring, hitbox, and PC input stay unchanged.
 mobileSensitivityButton.addEventListener('pointerdown', e => {
     e.stopPropagation();
 });
 mobileSensitivityButton.addEventListener('click', e => {
     e.stopPropagation();
-    joystickSensitivityIndex = (joystickSensitivityIndex + 1) % JOYSTICK_MAX_SPEEDS.length;
+    joystickSensitivityIndex = (joystickSensitivityIndex + 1) % TRACKPAD_GAINS.length;
     const label = JOYSTICK_SPEED_LABELS[joystickSensitivityIndex];
     mobileSensitivityButton.textContent = 'SENS ' + label;
-    mobileSensitivityButton.setAttribute('aria-label', 'Joystick sensitivity: ' + label.toLowerCase() + '. Tap to change.');
+    mobileSensitivityButton.setAttribute('aria-label', 'Trackpad sensitivity: ' + label.toLowerCase() + '. Tap to change.');
 });
-
-function stepMobileJoystick(frameTime) {
-    if (joystickPointerId === null || !isPlaying) {
-        joystickLastFrame = 0;
-        return;
-    }
-    const dt = joystickLastFrame ? Math.min((frameTime - joystickLastFrame) / 1000, 0.04) : 0;
-    joystickLastFrame = frameTime;
-    const magnitude = Math.hypot(joystickX, joystickY);
-    if (dt <= 0 || magnitude <= 0) return;
-    // Zero speed at rest; quadratic curve gives fine adjustment near center.
-    const speed = JOYSTICK_MAX_SPEEDS[joystickSensitivityIndex] * magnitude * magnitude;
-    const travel = speed * dt / magnitude;
-    pointerX = clamp(pointerX + joystickX * travel, 12, Math.max(12, innerWidth - 12));
-    pointerY = clamp(pointerY + joystickY * travel, 12, Math.max(12, innerHeight - 12));
-    setCrosshair(pointerX, pointerY);
-    updateGunAim(pointerX, pointerY);
-}
 
 function mobileShoot() {
     if (!isPlaying) return;
@@ -619,7 +611,6 @@ function retireClay(target) {
 
 function roundLoop(frameTime) {
     if (!isPlaying) return;
-    stepMobileJoystick(frameTime);
     const elapsed = (frameTime - roundStartedAt) / 1000;
     if (elapsed >= ROUND_SECONDS) { endGame(); return; }
 
