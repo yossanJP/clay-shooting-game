@@ -104,7 +104,7 @@ body {
         translate3d(var(--aim-x), calc(var(--aim-y) + var(--recoil-y) + var(--reload-y)), 0)
         rotateZ(calc(var(--aim-rot) + var(--recoil-rot) + var(--reload-rot)))
         rotateX(calc(8deg + var(--aim-pitch)));
-    transition: transform 0.08s ease-out, filter 0.12s ease-out;
+    transition: none;
 }
 #gun-image {
     width: 100%;
@@ -456,7 +456,7 @@ button:hover { background: #d03700; }
         rotateZ(calc(var(--aim-rot) + var(--recoil-rot) + var(--reload-rot)))
         rotateY(var(--aim-yaw))
         rotateX(calc(8deg + var(--aim-pitch)));
-    transition: transform 0.065s ease-out;
+    transition: none; /* Mouse aim is driven by requestAnimationFrame. */
 }
 @media (max-width: 1024px) {
     #fps-gun { width: min(37vw, 340px); min-width: 205px; bottom: -5vh; }
