@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>リアル・クレー射撃 タイムアタック</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trap Shooting Time Attack</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -15,29 +16,82 @@
             <div class="ui-box">AMMO: <span id="ammo">2</span>/2</div>
         </div>
         <div id="instruction-display">
-            【操作】左クリック: 射撃 / 右クリック: リロード<br>
-            ※初弾撃破・素早い射撃・コンボ継続でスコア大幅アップ
+            Left Click: Shoot / Right Click or R: Reload<br>Gold clays ×3 at 15s / 30s / 45s · Fast hits and combos earn bonuses
         </div>
         <div id="crosshair"></div>
+        <div id="hit-marker">✦</div>
+        <div id="gold-flash" aria-hidden="true"></div>
+        <div id="reload-hud" class="hud-ready" aria-hidden="true">
+            <div id="reload-shells">
+                <div class="shell-slot shell-loaded" id="shell-1"><img src="ui/shell.webp" alt="Shotgun shell"></div>
+                <div class="shell-slot shell-loaded" id="shell-2"><img src="ui/shell.webp" alt="Shotgun shell"></div>
+            </div>
+            <div id="reload-hud-status">R / RMB</div>
+        </div>
         
-        <!-- FPS視点の超絶リアルな背景グラフィック（画像生成ができないため、外部の高画質競技場写真＋よりリアルなテクスチャで代用） -->
-        <div id="fps-gun">
-            <div class="barrel-left"></div>
-            <div class="barrel-right"></div>
-            <div class="sight"></div>
-            <div class="stock"></div>
+        <div id="fps-gun" aria-hidden="true">
+            <img id="gun-image" src="img/gun.webp" alt="">
         </div>
         
         <div id="start-screen">
-            <h1>トラップ射撃 タイムアタック</h1>
-            <p>1分間で標的を撃ち落とせ！<br>連続命中で速度アップ＆高得点！</p>
-            <button id="start-btn">競技開始</button>
+            <h1>Trap Shooting Time Attack</h1>
+            <p>Break as many targets as you can in 60 seconds!<br>Keep hitting shots to raise the pace and score big.</p>
+            <button id="start-btn">Start Round</button>
         </div>
         <div id="game-over-screen" class="hidden">
-            <h1>TIME UP</h1>
-            <p>FINAL SCORE: <span id="final-score">0</span></p>
-            <p>MAX COMBO: <span id="max-combo">0</span></p>
-            <button id="restart-btn">もう一度プレイ</button>
+            <section class="results-card" aria-labelledby="results-heading">
+                <header class="results-header">
+                    <div class="results-brand">
+                        <span class="brand-glyph">✦</span>
+                        <span>CLAY SHOOTING <span class="brand-divider">/</span> 60 SECOND CHALLENGE</span>
+                    </div>
+                    <span class="results-edition">ROUND RESULTS</span>
+                </header>
+
+                <div class="results-hero">
+                    <div class="results-medallion" aria-hidden="true">
+                        <div class="medallion-inner">
+                            <svg viewBox="0 0 100 100" width="100" height="100" aria-hidden="true" focusable="false">
+                                <path d="M35 24h30v22c0 15-6 23-15 23s-15-8-15-23V24Z" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
+                                <path d="M35 32H24v8c0 10 6 16 17 17M65 32h11v8c0 10-6 16-17 17M50 69v10M36 80h28" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="m50 35 3.1 6.3 6.9 1-5 4.8 1.2 6.9-6.2-3.3-6.2 3.3 1.2-6.9-5-4.8 6.9-1L50 35Z" fill="currentColor"/>
+                            </svg>
+                            <span class="medallion-caption">COMPLETE</span>
+                        </div>
+                    </div>
+                    <div class="results-score-block">
+                        <div class="results-overline"><span class="overline-line"></span>TIME UP · FINAL RESULTS</div>
+                        <h1 id="results-heading">FINAL SCORE</h1>
+                        <div id="final-score" class="results-score" aria-live="polite">0</div>
+                        <div class="results-score-subline">ONE MINUTE. ONE CHANCE. YOUR SCORE.</div>
+                    </div>
+                </div>
+
+                <div class="results-divider"><span>PERFORMANCE SUMMARY</span></div>
+                <div class="results-highlights">
+                    <div class="result-metric"><span class="result-metric-label">MAX COMBO</span><strong id="max-combo">0</strong></div>
+                    <div class="result-metric"><span class="result-metric-label">TARGETS HIT</span><strong id="result-hit-count">0</strong></div>
+                    <div class="result-metric"><span class="result-metric-label">ACCURACY</span><strong id="result-accuracy">0%</strong></div>
+                    <div class="result-metric result-metric-gold"><span class="result-metric-label">GOLD CLAYS</span><strong id="result-gold-count">0/3</strong></div>
+                </div>
+
+                <div id="coach-panel" class="results-coach">
+                    <div class="coach-topline">
+                        <div>
+                            <h2><span class="coach-symbol">✦</span> AI SHOOTING COACH</h2>
+                            <p class="coach-subtitle">Personalized performance insights · runs locally · no API</p>
+                        </div>
+                        <span class="coach-analysis-tag">ANALYSIS</span>
+                    </div>
+                    <div id="coach-stats"></div>
+                    <p id="coach-advice"></p>
+                </div>
+
+                <footer class="results-footer">
+                    <span class="results-footnote">TRAIN YOUR AIM. BEAT YOUR SCORE.</span>
+                    <button id="restart-btn" type="button">PLAY AGAIN <span aria-hidden="true">→</span></button>
+                </footer>
+            </section>
         </div>
     </div>
     <script src="script.js"></script>

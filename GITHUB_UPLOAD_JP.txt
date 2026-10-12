@@ -1,0 +1,14 @@
+【GitHubにv19を反映する手順】
+1. このZIPを展開します（ZIPのままGitHubへ置かない）。
+2. https://github.com/yossanJP/clay-shooting-game を開きます。
+3. Add file → Upload files を押します。
+4. 展開したフォルダの中身（index.html、script.js、style.css、img、ui、sounds、preview、README.md、CARTRIDGE_BUILD_NOTES.mdなど）をドラッグします。外側のフォルダはドラッグしないでください。
+5. Commit changes を押します。上書き対象は新版としてコミットします。
+6. リポジトリのルートに index.html、img/、ui/、sounds/ があるか確認します。
+7. 古い未使用の img/Image_*.png / img/Image_*.jpeg は不要です。残っていてもv19の動作には使われません。
+
+注意：GitHub更新だけではCartridge内のゲームが自動で更新されるとは限りません。
+・新規ゲーム：Cartridgeのゲーム企画欄にこのGitHub公開URLを渡し、別途トークンの立ち上げ操作が必要です。
+・既存ゲーム：Cartridge側のゲームURLが必要です。現在の更新方法を公式画面で確認します。
+・スコア保存／公式ランキング連携は本ソース単体にはまだ実装されていません。
+・公式AI builderがコード再利用前にライセンスをチェックするため、公開利用する前にコードと画像／音の権利条件を確認してください。
