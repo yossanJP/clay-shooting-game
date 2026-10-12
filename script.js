@@ -108,6 +108,7 @@ function playGunshot() {
         source.buffer = shotBuffer;
         source.playbackRate.value = 0.96;
         source.connect(audioCtx.destination);
+        source.onended = () => { try { source.disconnect(); } catch (_) {} };
         source.start();
         return;
     }
@@ -146,11 +147,12 @@ function updateGunAim(x, y) {
 function handleMouseMove(e) {
     pointerX = e.clientX;
     pointerY = e.clientY;
-    // Reticle must react immediately; throttle only the heavier gun pose.
-    setCrosshair(pointerX, pointerY);
+    // High-polling mice can flood the renderer. Update reticle and gun
+    // together once per animation frame using the latest pointer coordinates.
     if (pendingAimFrame) return;
     pendingAimFrame = requestAnimationFrame(() => {
         pendingAimFrame = 0;
+        setCrosshair(pointerX, pointerY);
         updateGunAim(pointerX, pointerY);
     });
 }
@@ -520,6 +522,57 @@ function coachReport() {
     }
     coachAdvice.textContent = tips.slice(0, 3).join(' ');
 }
+
+
+// On-demand performance diagnostics: add ?perf=1 to the URL.
+// No analytics, storage, API calls, or changes to scoring.
+function installPerfMonitor() {
+    if (!new URLSearchParams(window.location.search).has('perf')) return;
+    const panel = document.createElement('div');
+    panel.id = 'perf-monitor';
+    panel.style.cssText = [
+        'position:fixed', 'left:12px', 'bottom:12px', 'z-index:300',
+        'padding:8px 10px', 'border:1px solid #d4aa5b',
+        'border-radius:5px', 'background:rgba(0,0,0,.83)',
+        'font:12px/1.5 monospace', 'color:#f2d9a6',
+        'pointer-events:none', 'white-space:pre'
+    ].join(';');
+    panel.textContent = 'PERFORMANCE MONITOR';
+    document.body.appendChild(panel);
+    const deltas = [];
+    let previous = 0, lastPaint = 0, longTasks = 0;
+    if (typeof PerformanceObserver !== 'undefined') {
+        try {
+            const observer = new PerformanceObserver(list => {
+                longTasks += list.getEntries().length;
+            });
+            observer.observe({entryTypes:['longtask']});
+        } catch (_) {}
+    }
+    function sample(now) {
+        if (previous) {
+            deltas.push(now - previous);
+            if (deltas.length > 120) deltas.shift();
+        }
+        previous = now;
+        if (now - lastPaint >= 1000 && deltas.length) {
+            const total = deltas.reduce((sum, value) => sum + value, 0);
+            const fps = Math.round(deltas.length * 1000 / total);
+            const slow = deltas.filter(value => value > 33.4).length;
+            const worst = Math.round(Math.max(...deltas));
+            const heap = performance.memory?.usedJSHeapSize;
+            const memory = heap ? (heap / 1048576).toFixed(1) + 'MB' : 'N/A';
+            panel.textContent = 'FPS: ' + fps + ' | Slow: ' + slow + '/' + deltas.length +
+                '\nWorst: ' + worst + 'ms | Long tasks: ' + longTasks +
+                '\nDOM: ' + document.getElementsByTagName('*').length +
+                ' | Anim: ' + document.getAnimations().length + ' | JS: ' + memory;
+            lastPaint = now;
+        }
+        requestAnimationFrame(sample);
+    }
+    requestAnimationFrame(sample);
+}
+installPerfMonitor();
 
 function startGame() {
     if (roundFrame !== null) cancelAnimationFrame(roundFrame);
