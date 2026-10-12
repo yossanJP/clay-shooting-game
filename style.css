@@ -658,3 +658,43 @@ button:hover { background: #d03700; }
 /* Center when there is room; never crop the top/bottom when a short viewport scrolls. */
 #game-over-screen { justify-content: flex-start; }
 #game-over-screen .results-card { margin: auto; flex-shrink: 0; }
+
+/* v21 — touch controls. Desktop mouse and keyboard behavior stays unchanged. */
+#mobile-controls, #mobile-start-tip { display: none; }
+#mobile-controls { position:absolute; z-index:190; right:12px; bottom:calc(12px + env(safe-area-inset-bottom, 0px)); align-items:flex-end; gap:12px; pointer-events:auto; }
+#mobile-controls button { margin:0; border:2px solid rgba(255,255,255,.65); user-select:none; -webkit-user-select:none; -webkit-touch-callout:none; touch-action:none; letter-spacing:1.3px; font-family:inherit; font-weight:900; }
+#mobile-fire { width:106px; height:106px; border-radius:50%; background:linear-gradient(160deg,#c84224,#812619); box-shadow:0 5px 0 #48190d,0 10px 22px rgba(0,0,0,.45); font-size:19px; }
+#mobile-reload { width:84px; height:77px; border-radius:12px; background:linear-gradient(150deg,#b38c53,#70502f); box-shadow:0 4px 0 #3b2a1a; font-size:13px; }
+#mobile-controls button:active { filter:brightness(1.3); transform:translateY(3px); box-shadow:0 2px 0 rgba(0,0,0,.6); }
+@media (pointer:coarse) {
+    #game-container { height:100dvh; }
+    #game-container.mobile-playing { touch-action:none; }
+    #game-container.mobile-playing #mobile-controls { display:flex; }
+    #mobile-start-tip { display:block; max-width:360px; padding:0 16px; color:#f7dca2; font-size:14px; line-height:1.5; }
+    #start-screen, #game-over-screen { cursor:auto; }
+    #start-screen { box-sizing:border-box; padding:16px; overflow-y:auto; }
+    #start-screen h1 { font-size:clamp(22px,6vw,34px); margin:0 0 10px; }
+    #start-screen p { font-size:13px; line-height:1.4; margin:8px 0; }
+    #start-btn { margin-top:12px; }
+    #instruction-display { display:none; }
+    #ui-layer { top:calc(7px + env(safe-area-inset-top, 0px)); left:8px; right:8px; display:grid; grid-template-columns:repeat(2,max-content); gap:5px; font-size:13px; }
+    .ui-box { padding:4px 7px; border-radius:5px; white-space:nowrap; }
+    #fps-gun { width:min(36vw,310px); min-width:130px; bottom:-9vh; }
+    #reload-hud { right:17px; bottom:calc(136px + env(safe-area-inset-bottom, 0px)); gap:3px; }
+    .shell-slot { width:27px; height:54px; }
+    #reload-hud-status { font-size:10px; padding:3px 6px; letter-spacing:.7px; }
+    #crosshair { box-shadow:0 0 5px rgba(0,255,102,.65); }
+    #game-over-screen { touch-action:pan-y; -webkit-overflow-scrolling:touch; }
+    #game-over-screen .results-card { max-width:calc(100vw - 16px); }
+    #perf-monitor { max-width:48vw; font-size:10px !important; }
+}
+@media (pointer:coarse) and (orientation:landscape) and (max-height:550px) {
+    #fps-gun { width:min(27vw,270px); bottom:-16vh; }
+    #mobile-fire { width:86px; height:86px; font-size:16px; }
+    #mobile-reload { width:71px; height:63px; font-size:11px; }
+    #reload-hud { bottom:calc(102px + env(safe-area-inset-bottom, 0px)); }
+    .shell-slot { width:20px; height:41px; }
+    #ui-layer { grid-template-columns:repeat(4,max-content); font-size:11px; }
+    .ui-box { padding:3px 5px; }
+    #start-screen p { font-size:12px; }
+}
