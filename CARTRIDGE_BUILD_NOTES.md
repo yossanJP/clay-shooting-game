@@ -1,8 +1,8 @@
-# Cartridge AI Builder — v19 Handoff
+# Cartridge AI Builder — v27 Handoff
 
 **Project:** CLAY SHOOTING / 60 SECOND CHALLENGE
 **Entry point:** `index.html` (static HTML5 game)
-**Source version:** v19; do not fall back to earlier versions.
+**Source version:** v27; do not fall back to earlier versions.
 
 ## Preserve exactly
 1. Realistic shooting range background and first-person double-barrel shotgun + hands with smooth pointer tracking (gun angle reacts to mouse movement, including reload).
@@ -12,6 +12,7 @@
 5. Narrow ellipse-shaped hit detection, rather than a generous circular hitbox.
 6. Premium black/gold ending results with final score, max combo, targets hit, accuracy, gold hits, and offline rules-based coach.
 7. All audio, graphics, and UI assets included locally; do not substitute assets or auto-generate a different design without permission.
+8. v27 mobile: left-thumb relative trackpad aim with LOW/MID/HIGH sensitivity, right-side SHOOT/RELOAD buttons, protected controller touch zone. Do not restore touch-to-aim teleportation.
 
 ## Cartridge platform adaptation
 - Implement official wallet/session flow and server-verified score submission **only through the documented supported Cartridge interface**; do not invent client API endpoints.
@@ -21,4 +22,4 @@
 - Do not introduce auto-aim, bots, macros, wallet requests, or pay-to-win adjustments.
 
 ## Japanese context
-このリポジトリはゲームv19の完成ソースです。銃画像・背景・効果音・残弾UI・ゴールドクレー・黒金の結果画面を変更しないでください。Cartridgeへのスコア提出連携だけは公式仕様に従って追加し、公平なランキングが動くように確認してください。旧版への巻き戻しは禁止です。
+このリポジトリはゲームv27の完成ソースです。銃画像・背景・効果音・残弾UI・ゴールドクレー・黒金の結果画面を変更しないでください。Cartridgeへのスコア提出連携だけは公式仕様に従って追加し、公平なランキングが動くように確認してください。旧版への巻き戻しは禁止です。
