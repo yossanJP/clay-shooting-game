@@ -1,4 +1,4 @@
-# Clay Shooting — 60 Second Challenge (v19)
+# Clay Shooting — 60 Second Challenge (v27)
 
 A standalone browser-based clay shooting arcade game built with vanilla HTML, CSS and JavaScript.
 
@@ -6,6 +6,7 @@ A standalone browser-based clay shooting arcade game built with vanilla HTML, CS
 - 60-second score challenge.
 - Move the mouse to aim; left click to shoot; right click or **R** to reload.
 - Two-shot magazine, with on-screen shell ammo indicators.
+- Mobile controls: left-thumb trackpad with LOW/MID/HIGH sensitivity and right-side SHOOT/RELOAD buttons. Desktop is recommended.
 - Deterministic clay trajectories so every round follows the same schedule.
 - Gold clays appear at 15, 30 and 45 seconds of elapsed play; each earns 3x points.
 - Fast reactions and hit streaks increase points.
