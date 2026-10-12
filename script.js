@@ -156,6 +156,12 @@ const mobileReloadButton = document.getElementById('mobile-reload');
 const mobileJoystick = document.getElementById('mobile-joystick');
 const mobileJoystickRing = document.getElementById('mobile-joystick-ring');
 const mobileJoystickThumb = document.getElementById('mobile-joystick-thumb');
+const mobileSensitivityButton = document.getElementById('mobile-sensitivity');
+// Start with precision aiming, not full-speed movement.
+// 300/450/680 px per second at maximum deflection, vs the previous 1080 px/s.
+const JOYSTICK_MAX_SPEEDS = [300, 450, 680];
+const JOYSTICK_SPEED_LABELS = ['LOW', 'MID', 'HIGH'];
+let joystickSensitivityIndex = 0;
 let joystickPointerId = null;
 let joystickCenterX = 0, joystickCenterY = 0, joystickTravel = 37;
 let joystickX = 0, joystickY = 0, joystickLastFrame = 0;
@@ -251,7 +257,8 @@ function updateMobileJoystick(e) {
     const dy = e.clientY - joystickCenterY;
     const length = Math.hypot(dx, dy);
     const fraction = Math.min(1, length / joystickTravel);
-    const size = Math.max(0, (fraction - 0.08) / 0.92);
+    // Wider center deadzone prevents drift from tiny thumb movements.
+    const size = Math.max(0, (fraction - 0.17) / 0.83);
     const unitX = length > 0 ? dx / length : 0;
     const unitY = length > 0 ? dy / length : 0;
     joystickX = unitX * size;
@@ -262,6 +269,7 @@ function updateMobileJoystick(e) {
         (unitY * knobLength).toFixed(1) + 'px,0)';
 }
 mobileJoystick.addEventListener('pointerdown', e => {
+    if (e.target.closest('#mobile-sensitivity')) return;
     if (!isPlaying || joystickPointerId !== null) return;
     e.preventDefault();
     e.stopPropagation();
@@ -289,6 +297,18 @@ mobileJoystick.addEventListener('pointerup', stopJoystick);
 mobileJoystick.addEventListener('pointercancel', stopJoystick);
 mobileJoystick.addEventListener('lostpointercapture', stopJoystick);
 
+// Players can tune the stick without altering the hitbox or scoring.
+mobileSensitivityButton.addEventListener('pointerdown', e => {
+    e.stopPropagation();
+});
+mobileSensitivityButton.addEventListener('click', e => {
+    e.stopPropagation();
+    joystickSensitivityIndex = (joystickSensitivityIndex + 1) % JOYSTICK_MAX_SPEEDS.length;
+    const label = JOYSTICK_SPEED_LABELS[joystickSensitivityIndex];
+    mobileSensitivityButton.textContent = 'SENS ' + label;
+    mobileSensitivityButton.setAttribute('aria-label', 'Joystick sensitivity: ' + label.toLowerCase() + '. Tap to change.');
+});
+
 function stepMobileJoystick(frameTime) {
     if (joystickPointerId === null || !isPlaying) {
         joystickLastFrame = 0;
@@ -298,7 +318,8 @@ function stepMobileJoystick(frameTime) {
     joystickLastFrame = frameTime;
     const magnitude = Math.hypot(joystickX, joystickY);
     if (dt <= 0 || magnitude <= 0) return;
-    const speed = 100 + 980 * Math.pow(magnitude, 1.5);
+    // Zero speed at rest; quadratic curve gives fine adjustment near center.
+    const speed = JOYSTICK_MAX_SPEEDS[joystickSensitivityIndex] * magnitude * magnitude;
     const travel = speed * dt / magnitude;
     pointerX = clamp(pointerX + joystickX * travel, 12, Math.max(12, innerWidth - 12));
     pointerY = clamp(pointerY + joystickY * travel, 12, Math.max(12, innerHeight - 12));
@@ -324,7 +345,7 @@ mobileFireButton.addEventListener('click', e => { e.stopPropagation(); if (e.det
 mobileReloadButton.addEventListener('click', e => { e.stopPropagation(); if (e.detail === 0 && isPlaying) reload(); });
 
 document.addEventListener('mousedown', e => {
-    if (!isPlaying || e.target.closest('#mobile-controls')) return;
+    if (!isPlaying || e.target.closest('#mobile-controls, #mobile-joystick')) return;
     if (Date.now() - lastTouchAt < 650) return;
     getAudioContext();
     if (e.button === 0) shoot(e);
