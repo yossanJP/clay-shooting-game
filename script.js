@@ -144,9 +144,10 @@ function updateGunAim(x, y) {
     fpsGun.style.setProperty('--aim-pitch', `${(-ny * 9).toFixed(2)}deg`);
 }
 
-// One aim update per display frame for mouse and touch alike.
-let mobileAimPointerId = null;
-let mobileLastX = 0, mobileLastY = 0, lastTouchAt = 0;
+// PC aim and mobile aim use the same shot coordinates.
+// Touches use direct positioning, not an accumulated relative offset.
+let mobileTouchId = null;
+let lastTouchAt = 0;
 const mobileFireButton = document.getElementById('mobile-fire');
 const mobileReloadButton = document.getElementById('mobile-reload');
 
@@ -159,7 +160,7 @@ function scheduleAim() {
     });
 }
 function handleMouseMove(e) {
-    if (Date.now() - lastTouchAt < 650) return; // Suppress synthesized mouse events after a touch.
+    if (Date.now() - lastTouchAt < 650) return; // Ignore simulated mouse events after touch.
     pointerX = e.clientX;
     pointerY = e.clientY;
     scheduleAim();
@@ -168,37 +169,53 @@ document.addEventListener('mousemove', handleMouseMove);
 window.addEventListener('resize', () => scheduleAim());
 document.addEventListener('contextmenu', e => e.preventDefault());
 
-// Mobile: relative dragging avoids covering the reticle with the aiming finger.
-// Pointer capture keeps aiming smooth when the finger crosses targets/overlays.
-container.addEventListener('pointerdown', e => {
-    if (e.pointerType === 'mouse' || !isPlaying || mobileAimPointerId !== null) return;
-    if (e.target.closest('#mobile-controls, #start-screen, #game-over-screen')) return;
-    e.preventDefault();
-    mobileAimPointerId = e.pointerId;
-    mobileLastX = e.clientX;
-    mobileLastY = e.clientY;
+// iOS/Android: touch the desired aim point to move the crosshair there
+// instantly. The player can also drag to fine tune. No pointer capture or
+// relative offset: a cancelled/missed touch cannot permanently lock aiming.
+function aimFromTouch(touch) {
+    pointerX = clamp(touch.clientX, 12, Math.max(12, innerWidth - 12));
+    pointerY = clamp(touch.clientY, 12, Math.max(12, innerHeight - 12));
     lastTouchAt = Date.now();
-    try { container.setPointerCapture(e.pointerId); } catch (_) {}
-});
-container.addEventListener('pointermove', e => {
-    if (e.pointerId !== mobileAimPointerId) return;
-    e.preventDefault();
-    lastTouchAt = Date.now();
-    pointerX = clamp(pointerX + (e.clientX - mobileLastX) * 1.2, 12, innerWidth - 12);
-    pointerY = clamp(pointerY + (e.clientY - mobileLastY) * 1.2, 12, innerHeight - 12);
-    mobileLastX = e.clientX;
-    mobileLastY = e.clientY;
+    // Crosshair updates immediately on tap; gun pose is coalesced to a frame.
+    setCrosshair(pointerX, pointerY);
     scheduleAim();
-});
-function stopMobileAim(e) {
-    if (e.pointerId !== mobileAimPointerId) return;
-    mobileAimPointerId = null;
-    lastTouchAt = Date.now();
-    try { if (container.hasPointerCapture(e.pointerId)) container.releasePointerCapture(e.pointerId); } catch (_) {}
 }
-container.addEventListener('pointerup', stopMobileAim);
-container.addEventListener('pointercancel', stopMobileAim);
-window.addEventListener('blur', () => { mobileAimPointerId = null; });
+container.addEventListener('touchstart', e => {
+    if (!isPlaying || e.target.closest('#mobile-controls, #start-screen, #game-over-screen')) return;
+    const touch = e.changedTouches[0];
+    if (!touch) return;
+    e.preventDefault();
+    // Replace a stale tracking id with the new tap (including interrupted gestures).
+    mobileTouchId = touch.identifier;
+    aimFromTouch(touch);
+}, {passive:false});
+window.addEventListener('touchmove', e => {
+    if (!isPlaying || mobileTouchId === null) return;
+    let touch = null;
+    for (let i = 0; i < e.touches.length; i++) {
+        if (e.touches[i].identifier === mobileTouchId) { touch = e.touches[i]; break; }
+    }
+    if (!touch) return;
+    e.preventDefault();
+    aimFromTouch(touch);
+}, {passive:false});
+function finishMobileTouch(e) {
+    if (mobileTouchId === null) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === mobileTouchId) {
+            mobileTouchId = null;
+            lastTouchAt = Date.now();
+            break;
+        }
+    }
+}
+window.addEventListener('touchend', finishMobileTouch);
+window.addEventListener('touchcancel', finishMobileTouch);
+window.addEventListener('blur', () => { mobileTouchId = null; });
+document.addEventListener('visibilitychange', () => {
+    if (document.hidden) mobileTouchId = null;
+});
+
 function mobileShoot() {
     if (!isPlaying) return;
     getAudioContext();
@@ -212,18 +229,18 @@ mobileReloadButton.addEventListener('pointerdown', e => {
     e.preventDefault(); e.stopPropagation(); lastTouchAt = Date.now();
     if (isPlaying) { getAudioContext(); reload(); }
 });
-// Keyboard activation on accessible mobile buttons.
+// Keyboard accessibility for button activation.
 mobileFireButton.addEventListener('click', e => { e.stopPropagation(); if (e.detail === 0) mobileShoot(); });
 mobileReloadButton.addEventListener('click', e => { e.stopPropagation(); if (e.detail === 0 && isPlaying) reload(); });
 
-document.addEventListener('mousedown', (e) => {
+document.addEventListener('mousedown', e => {
     if (!isPlaying || e.target.closest('#mobile-controls')) return;
     if (Date.now() - lastTouchAt < 650) return;
     getAudioContext();
     if (e.button === 0) shoot(e);
     else if (e.button === 2) reload();
 });
-document.addEventListener('keydown', (e) => {
+document.addEventListener('keydown', e => {
     if (!isPlaying) return;
     if (e.key.toLowerCase() === 'r') reload();
 });
@@ -642,6 +659,7 @@ function startGame() {
     maxCombo = 0;
     isReloading = false;
     isPlaying = true;
+    mobileTouchId = null;
     container.classList.add('mobile-playing');
     activeClays.forEach(c => c.el.remove());
     activeClays = [];
@@ -660,7 +678,7 @@ function startGame() {
 function endGame() {
     if (!isPlaying) return;
     isPlaying = false;
-    mobileAimPointerId = null;
+    mobileTouchId = null;
     container.classList.remove('mobile-playing');
     if (roundFrame !== null) cancelAnimationFrame(roundFrame);
     roundFrame = null;
